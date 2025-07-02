@@ -1,0 +1,59 @@
+from sqlalchemy import create_engine, Column, Integer, String, ForeignKey
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import sessionmaker, relationship, joinedload
+
+# 🧱 Configuração inicial
+Base = declarative_base()
+
+class Cliente(Base):
+    __tablename__ = 'clientes'
+    id = Column(Integer, primary_key=True)
+    nome = Column(String)
+    email = Column(String)
+    enderecos = relationship('Endereco', back_populates='cliente', cascade='all, delete-orphan')
+
+class Endereco(Base):
+    __tablename__ = 'enderecos'
+    id = Column(Integer, primary_key=True)
+    rua = Column(String)
+    cidade = Column(String)
+    cliente_id = Column(Integer, ForeignKey('clientes.id'))
+    cliente = relationship('Cliente', back_populates='enderecos')
+
+# 🗄️ Criar banco e sessão
+engine = create_engine('sqlite:///clientes.db', echo=False)
+Base.metadata.create_all(engine)
+Session = sessionmaker(bind=engine)
+session = Session()
+
+# 🔁 Operações CRUD
+# Criar
+cliente1 = Cliente(nome='João da Silva', email='joao@exemplo.com')
+cliente1.enderecos = [Endereco(rua='Rua Alfa', cidade='Fortaleza')]
+session.add(cliente1)
+
+cliente2 = Cliente(nome='Ana Souza', email='ana@exemplo.com')
+cliente2.enderecos = [Endereco(rua='Rua Beta', cidade='Sobral')]
+session.add(cliente2)
+session.commit()
+
+# Ler e exibir com junção
+clientes = session.query(Cliente).options(joinedload(Cliente.enderecos)).all()
+for c in clientes:
+    print(f"{c.nome} ({c.email}) - Endereços: {[f'{e.rua}, {e.cidade}' for e in c.enderecos]}")
+
+# Atualizar
+cliente_para_atualizar = session.query(Cliente).filter_by(nome='João da Silva').first()
+cliente_para_atualizar.nome = 'João S. Silva'
+session.commit()
+
+# Excluir
+cliente_para_excluir = session.query(Cliente).filter_by(nome='Ana Souza').first()
+session.delete(cliente_para_excluir)
+session.commit()
+
+# Verificar resultado final
+clientes_restantes = session.query(Cliente).options(joinedload(Cliente.enderecos)).all()
+print("\nClientes após atualização e exclusão:")
+for c in clientes_restantes:
+    print(f"{c.nome} - {[e.cidade for e in c.enderecos]}")
