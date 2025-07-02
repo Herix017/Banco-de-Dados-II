@@ -1,0 +1,35 @@
+from pymongo import MongoClient
+
+# 🔌 Conectar ao MongoDB
+cliente_mongo = MongoClient("mongodb://localhost:27017/")
+db = cliente_mongo["empresa"]
+clientes = db["clientes"]
+
+# 🚿 Limpar coleção para evitar duplicatas se reexecutar
+clientes.delete_many({})
+
+# 📥 Inserção de documentos
+clientes.insert_many([
+    {"nome": "Carlos Oliveira", "email": "carlos@email.com", "cidade": "Fortaleza", "compras": ["Notebook", "Mouse"]},
+    {"nome": "Juliana", "email": "juliana@email.com", "cidade": "Sobral"},
+    {"nome": "Rodrigo", "email": "rodrigo@email.com", "cidade": "Juazeiro"}
+])
+
+# 🔍 Consulta: exibir todos os clientes
+print("\n📄 Clientes cadastrados:")
+for c in clientes.find():
+    print(f"{c['nome']} ({c.get('email')}) - {c.get('cidade')}")
+
+# 📝 Atualização: mudar nome de Carlos
+clientes.update_one(
+    {"nome": "Carlos Oliveira"},
+    {"$set": {"nome": "Carlos Silva"}}
+)
+
+# ❌ Exclusão: remover cliente Rodrigo
+clientes.delete_one({"nome": "Rodrigo"})
+
+# 🧾 Consulta final após alterações
+print("\n🧾 Clientes após atualização e exclusão:")
+for c in clientes.find():
+    print(f"{c['nome']} - {c.get('cidade')}")
